@@ -31,6 +31,28 @@ body {
   line-height: 1.5;
 }
 
+body,
+.app-layout,
+.main-content,
+.topbar,
+.panel,
+.panel-header,
+.table-wrapper,
+.stats-grid,
+.form-grid,
+.search-box {
+  min-width: 0;
+}
+
+h1,
+h2,
+p,
+td,
+.brand,
+.employee-name {
+  overflow-wrap: anywhere;
+}
+
 button,
 input,
 select {
@@ -56,11 +78,23 @@ button {
   color: #ffffff;
 }
 
+.sidebar-header {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 34px;
+}
+
 .brand {
   display: flex;
   gap: 12px;
   align-items: center;
-  margin-bottom: 34px;
+  min-width: 0;
+}
+
+.brand div {
+  min-width: 0;
 }
 
 .brand-mark {
@@ -78,6 +112,41 @@ button {
   display: block;
   color: #b8c2cc;
   font-size: 13px;
+}
+
+.menu-toggle {
+  display: none;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  background: transparent;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.menu-toggle span {
+  width: 20px;
+  height: 2px;
+  border-radius: 999px;
+  background: #ffffff;
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.sidebar.nav-open .menu-toggle span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.sidebar.nav-open .menu-toggle span:nth-child(2) {
+  opacity: 0;
+}
+
+.sidebar.nav-open .menu-toggle span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
 }
 
 .side-nav {
@@ -103,6 +172,7 @@ button {
   gap: 22px;
   align-content: start;
   padding: 28px;
+  width: 100%;
 }
 
 .topbar {
@@ -110,6 +180,11 @@ button {
   gap: 18px;
   align-items: flex-start;
   justify-content: space-between;
+}
+
+.topbar > div,
+.panel-header > div {
+  min-width: 0;
 }
 
 .eyebrow {
@@ -197,6 +272,7 @@ h2 {
   border-radius: 8px;
   background: var(--surface);
   box-shadow: var(--shadow);
+  max-width: 100%;
 }
 
 .panel-header {
@@ -378,12 +454,13 @@ td {
   }
 
   .sidebar {
-    position: static;
+    position: sticky;
+    z-index: 20;
     height: auto;
     padding: 16px;
   }
 
-  .brand {
+  .sidebar-header {
     margin-bottom: 16px;
   }
 
@@ -401,9 +478,50 @@ td {
   }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 820px) {
+  .sidebar {
+    top: 0;
+    padding: 14px 16px;
+  }
+
+  .sidebar-header {
+    margin-bottom: 0;
+  }
+
+  .brand-mark {
+    width: 42px;
+    height: 42px;
+  }
+
+  .menu-toggle {
+    display: inline-flex;
+  }
+
+  .side-nav {
+    display: none;
+    grid-template-columns: 1fr;
+    margin-top: 14px;
+  }
+
+  .sidebar.nav-open .side-nav {
+    display: grid;
+  }
+
+  .side-nav a {
+    text-align: left;
+  }
+
   .main-content {
-    padding: 18px;
+    gap: 16px;
+    padding: 16px;
+  }
+
+  h1 {
+    font-size: 26px;
+  }
+
+  .page-description {
+    font-size: 14px;
   }
 
   .topbar,
@@ -423,6 +541,15 @@ td {
     grid-template-columns: 1fr;
   }
 
+  .stat-card {
+    min-height: 92px;
+    padding: 16px;
+  }
+
+  .stat-card strong {
+    font-size: 26px;
+  }
+
   .search-box {
     flex-direction: column;
   }
@@ -430,5 +557,118 @@ td {
   .form-actions,
   .form-actions .primary-button {
     width: 100%;
+  }
+
+  .table-wrapper {
+    overflow-x: visible;
+  }
+
+  table {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  thead {
+    display: none;
+  }
+
+  tbody {
+    display: grid;
+    gap: 12px;
+    padding: 12px;
+    width: 100%;
+  }
+
+  tr {
+    display: grid;
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #ffffff;
+  }
+
+  td {
+    display: grid;
+    grid-template-columns: 106px minmax(0, 1fr);
+    gap: 12px;
+    align-items: center;
+    padding: 11px 12px;
+    border-bottom: 1px solid var(--border);
+    word-break: break-word;
+  }
+
+  td:last-child {
+    border-bottom: 0;
+  }
+
+  td::before {
+    content: attr(data-label);
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .row-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .row-actions .action-button {
+    flex: 1;
+    min-width: 90px;
+  }
+}
+
+@media (max-width: 420px) {
+  .main-content {
+    padding: 12px;
+  }
+
+  .sidebar {
+    padding: 12px;
+  }
+
+  .brand {
+    gap: 9px;
+  }
+
+  .brand-mark {
+    width: 38px;
+    height: 38px;
+    font-size: 13px;
+  }
+
+  .brand strong {
+    font-size: 14px;
+  }
+
+  .brand small {
+    font-size: 12px;
+  }
+
+  .menu-toggle {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+  }
+
+  h1 {
+    font-size: 24px;
+  }
+
+  .panel-header,
+  .form-panel form {
+    padding: 16px;
+  }
+
+  tbody {
+    padding: 10px;
+  }
+
+  td {
+    grid-template-columns: 82px minmax(0, 1fr);
+    gap: 8px;
+    padding: 10px;
   }
 }

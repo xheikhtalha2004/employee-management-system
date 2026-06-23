@@ -21,6 +21,9 @@ const searchInput = document.getElementById("search-input");
 const clearSearchButton = document.getElementById("clear-search-btn");
 const tableBody = document.getElementById("employee-table-body");
 const emptyState = document.getElementById("empty-state");
+const sidebar = document.getElementById("sidebar");
+const menuToggle = document.getElementById("menu-toggle");
+const sideNav = document.getElementById("side-nav");
 
 const totalEmployees = document.getElementById("total-employees");
 const activeEmployees = document.getElementById("active-employees");
@@ -33,6 +36,8 @@ addButton.addEventListener("click", showAddForm);
 searchInput.addEventListener("input", handleSearch);
 clearSearchButton.addEventListener("click", clearSearch);
 tableBody.addEventListener("click", handleTableClick);
+menuToggle.addEventListener("click", toggleMenu);
+sideNav.addEventListener("click", closeMenu);
 
 render();
 
@@ -76,7 +81,7 @@ function saveEmployee(event) {
   } else {
     employees.push({
       id: String(Date.now()),
-      ...employee
+      ...employee,
     });
     showMessage("Employee added successfully.", "success");
   }
@@ -95,7 +100,7 @@ function getFormData() {
     department: departmentInput.value,
     position: positionInput.value.trim(),
     salary: salary > 0 ? salary : 0,
-    status: statusInput.value
+    status: statusInput.value,
   };
 }
 
@@ -132,7 +137,7 @@ function validateEmployee(employee) {
   if (duplicateRecord) {
     return {
       message: "A matching employee record already exists.",
-      fields: [nameInput, departmentInput, positionInput]
+      fields: [nameInput, departmentInput, positionInput],
     };
   }
 
@@ -216,13 +221,29 @@ function showAddForm() {
 }
 
 function scrollToForm() {
-  document.getElementById("employee-form-panel").scrollIntoView({ behavior: "smooth" });
+  document
+    .getElementById("employee-form-panel")
+    .scrollIntoView({ behavior: "smooth" });
   nameInput.focus();
 }
 
 function handleSearch(event) {
   searchText = event.target.value;
   renderEmployees();
+}
+
+function toggleMenu() {
+  const isOpen = sidebar.classList.toggle("nav-open");
+  menuToggle.setAttribute("aria-expanded", isOpen);
+}
+
+function closeMenu(event) {
+  if (!event.target.closest("a")) {
+    return;
+  }
+
+  sidebar.classList.remove("nav-open");
+  menuToggle.setAttribute("aria-expanded", "false");
 }
 
 function clearSearch() {
@@ -237,9 +258,16 @@ function render() {
 }
 
 function renderStats() {
-  const activeCount = employees.filter((item) => item.status === "Active").length;
-  const departments = new Set(employees.map((item) => item.department).filter(Boolean));
-  const payroll = employees.reduce((total, item) => total + Number(item.salary || 0), 0);
+  const activeCount = employees.filter(
+    (item) => item.status === "Active",
+  ).length;
+  const departments = new Set(
+    employees.map((item) => item.department).filter(Boolean),
+  );
+  const payroll = employees.reduce(
+    (total, item) => total + Number(item.salary || 0),
+    0,
+  );
 
   totalEmployees.textContent = employees.length;
   activeEmployees.textContent = activeCount;
@@ -271,18 +299,18 @@ function createEmployeeRow(employee) {
 
   return `
     <tr>
-      <td>
+      <td data-label="Name">
         <div class="employee-name">
           <strong>${escapeHtml(employee.name)}</strong>
           <span>ID: ${escapeHtml(employee.id).slice(0, 8)}</span>
         </div>
       </td>
-      <td>${escapeHtml(employee.email)}</td>
-      <td>${escapeHtml(employee.department)}</td>
-      <td>${escapeHtml(employee.position || "Not assigned")}</td>
-      <td>${formatMoney(employee.salary)}</td>
-      <td><span class="status-badge status-${statusClass}">${escapeHtml(status)}</span></td>
-      <td>
+      <td data-label="Email">${escapeHtml(employee.email)}</td>
+      <td data-label="Department">${escapeHtml(employee.department)}</td>
+      <td data-label="Position">${escapeHtml(employee.position || "Not assigned")}</td>
+      <td data-label="Salary">${formatMoney(employee.salary)}</td>
+      <td data-label="Status"><span class="status-badge status-${statusClass}">${escapeHtml(status)}</span></td>
+      <td data-label="Actions">
         <div class="row-actions">
           <button class="action-button" type="button" data-action="edit" data-id="${employee.id}">Edit</button>
           <button class="action-button delete" type="button" data-action="delete" data-id="${employee.id}">Delete</button>
@@ -317,14 +345,16 @@ function isValidEmail(email) {
 }
 
 function clean(value) {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "")
+    .trim()
+    .toLowerCase();
 }
 
 function formatMoney(value) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
-    maximumFractionDigits: 0
+    maximumFractionDigits: 0,
   }).format(Number(value) || 0);
 }
 
