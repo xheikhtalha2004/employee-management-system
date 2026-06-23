@@ -1,430 +1,338 @@
 const STORAGE_KEY = "capregsoft_employee_records";
 
-const Utils = {
-  createId() {
-    if (window.crypto && crypto.randomUUID) {
-      return crypto.randomUUID();
-    }
-    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  },
+let employees = loadEmployees();
+let editingId = "";
+let searchText = "";
 
-  normalize(value) {
-    return String(value || "").trim().toLowerCase();
-  },
+const form = document.getElementById("employee-form");
+const employeeIdInput = document.getElementById("employee-id");
+const nameInput = document.getElementById("employee-name");
+const emailInput = document.getElementById("employee-email");
+const departmentInput = document.getElementById("employee-department");
+const positionInput = document.getElementById("employee-position");
+const salaryInput = document.getElementById("employee-salary");
+const statusInput = document.getElementById("employee-status");
+const formTitle = document.getElementById("form-title");
+const formMessage = document.getElementById("form-message");
+const submitButton = document.getElementById("submit-btn");
+const resetButton = document.getElementById("reset-form-btn");
+const addButton = document.getElementById("add-employee-btn");
+const searchInput = document.getElementById("search-input");
+const clearSearchButton = document.getElementById("clear-search-btn");
+const tableBody = document.getElementById("employee-table-body");
+const emptyState = document.getElementById("empty-state");
 
-  isValidEmail(email) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  },
+const totalEmployees = document.getElementById("total-employees");
+const activeEmployees = document.getElementById("active-employees");
+const departmentCount = document.getElementById("department-count");
+const totalPayroll = document.getElementById("total-payroll");
 
-  escapeHtml(value) {
-    return String(value || "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
-  },
+form.addEventListener("submit", saveEmployee);
+resetButton.addEventListener("click", resetForm);
+addButton.addEventListener("click", showAddForm);
+searchInput.addEventListener("input", handleSearch);
+clearSearchButton.addEventListener("click", clearSearch);
+tableBody.addEventListener("click", handleTableClick);
 
-  formatCurrency(value) {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      maximumFractionDigits: 0
-    }).format(Number(value) || 0);
+render();
+
+function loadEmployees() {
+  const savedData = localStorage.getItem(STORAGE_KEY);
+
+  if (!savedData) {
+    return [];
   }
-};
 
-const EmployeeStore = {
-  employees: [],
-
-  load() {
-    const savedEmployees = localStorage.getItem(STORAGE_KEY);
-
-    try {
-      this.employees = savedEmployees ? JSON.parse(savedEmployees) : [];
-      if (!Array.isArray(this.employees)) {
-        this.employees = [];
-      }
-    } catch {
-      this.employees = [];
-    }
-  },
-
-  save() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(this.employees));
-  },
-
-  getAll() {
-    return [...this.employees].sort((a, b) => a.name.localeCompare(b.name));
-  },
-
-  findById(id) {
-    return this.employees.find((employee) => employee.id === id);
-  },
-
-  add(employee) {
-    const record = {
-      id: Utils.createId(),
-      ...employee,
-      createdAt: new Date().toISOString()
-    };
-
-    this.employees.push(record);
-    this.save();
-    return record;
-  },
-
-  update(id, employee) {
-    this.employees = this.employees.map((item) => {
-      if (item.id !== id) {
-        return item;
-      }
-
-      return {
-        ...item,
-        ...employee,
-        updatedAt: new Date().toISOString()
-      };
-    });
-
-    this.save();
-  },
-
-  remove(id) {
-    this.employees = this.employees.filter((employee) => employee.id !== id);
-    this.save();
-  },
-
-  emailExists(email, ignoredId = "") {
-    const normalizedEmail = Utils.normalize(email);
-
-    return this.employees.some((employee) => {
-      return employee.id !== ignoredId && Utils.normalize(employee.email) === normalizedEmail;
-    });
-  },
-
-  duplicateExists(employee, ignoredId = "") {
-    const name = Utils.normalize(employee.name);
-    const department = Utils.normalize(employee.department);
-    const position = Utils.normalize(employee.position);
-
-    return this.employees.some((item) => {
-      return (
-        item.id !== ignoredId &&
-        Utils.normalize(item.name) === name &&
-        Utils.normalize(item.department) === department &&
-        Utils.normalize(item.position) === position
-      );
-    });
+  try {
+    const parsedData = JSON.parse(savedData);
+    return Array.isArray(parsedData) ? parsedData : [];
+  } catch {
+    return [];
   }
-};
+}
 
-const App = {
-  state: {
-    editingId: "",
-    searchTerm: ""
-  },
+function storeEmployees() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(employees));
+}
 
-  elements: {},
+function saveEmployee(event) {
+  event.preventDefault();
+  clearErrors();
 
-  init() {
-    this.cacheElements();
-    EmployeeStore.load();
-    this.bindEvents();
-    this.render();
-  },
+  const employee = getFormData();
+  const error = validateEmployee(employee);
 
-  cacheElements() {
-    this.elements = {
-      form: document.getElementById("employee-form"),
-      employeeId: document.getElementById("employee-id"),
-      name: document.getElementById("employee-name"),
-      email: document.getElementById("employee-email"),
-      department: document.getElementById("employee-department"),
-      position: document.getElementById("employee-position"),
-      salary: document.getElementById("employee-salary"),
-      status: document.getElementById("employee-status"),
-      formTitle: document.getElementById("form-title"),
-      formMessage: document.getElementById("form-message"),
-      submitButton: document.getElementById("submit-btn"),
-      resetButton: document.getElementById("reset-form-btn"),
-      addButton: document.getElementById("add-employee-btn"),
-      searchInput: document.getElementById("search-input"),
-      clearSearchButton: document.getElementById("clear-search-btn"),
-      tableBody: document.getElementById("employee-table-body"),
-      emptyState: document.getElementById("empty-state"),
-      totalEmployees: document.getElementById("total-employees"),
-      activeEmployees: document.getElementById("active-employees"),
-      departmentCount: document.getElementById("department-count"),
-      totalPayroll: document.getElementById("total-payroll")
-    };
-  },
+  if (error) {
+    showMessage(error.message, "error");
+    markErrors(error.fields);
+    return;
+  }
 
-  bindEvents() {
-    this.elements.form.addEventListener("submit", (event) => this.handleSubmit(event));
-    this.elements.resetButton.addEventListener("click", () => this.resetForm());
-    this.elements.addButton.addEventListener("click", () => {
-      this.resetForm();
-      this.elements.name.focus();
-      document.getElementById("employee-form-panel").scrollIntoView({ behavior: "smooth" });
+  if (editingId) {
+    employees = employees.map((item) => {
+      return item.id === editingId ? { ...item, ...employee } : item;
     });
-
-    this.elements.searchInput.addEventListener("input", (event) => {
-      this.state.searchTerm = event.target.value;
-      this.renderTable();
+    showMessage("Employee updated successfully.", "success");
+  } else {
+    employees.push({
+      id: String(Date.now()),
+      ...employee
     });
+    showMessage("Employee added successfully.", "success");
+  }
 
-    this.elements.clearSearchButton.addEventListener("click", () => {
-      this.state.searchTerm = "";
-      this.elements.searchInput.value = "";
-      this.renderTable();
-    });
+  storeEmployees();
+  resetForm(false);
+  render();
+}
 
-    this.elements.tableBody.addEventListener("click", (event) => {
-      const button = event.target.closest("[data-action]");
-      if (!button) {
-        return;
-      }
+function getFormData() {
+  const salary = Number(salaryInput.value);
 
-      const id = button.dataset.id;
-      if (button.dataset.action === "edit") {
-        this.startEdit(id);
-      }
+  return {
+    name: nameInput.value.trim(),
+    email: emailInput.value.trim().toLowerCase(),
+    department: departmentInput.value,
+    position: positionInput.value.trim(),
+    salary: salary > 0 ? salary : 0,
+    status: statusInput.value
+  };
+}
 
-      if (button.dataset.action === "delete") {
-        this.deleteEmployee(id);
-      }
-    });
-  },
+function validateEmployee(employee) {
+  if (!employee.name) {
+    return { message: "Name is required.", fields: [nameInput] };
+  }
 
-  handleSubmit(event) {
-    event.preventDefault();
-    const employee = this.readForm();
-    const validation = this.validateEmployee(employee);
+  if (!isValidEmail(employee.email)) {
+    return { message: "Enter a valid email address.", fields: [emailInput] };
+  }
 
-    this.clearValidation();
+  const emailAlreadyUsed = employees.some((item) => {
+    return item.id !== editingId && clean(item.email) === clean(employee.email);
+  });
 
-    if (!validation.isValid) {
-      this.showMessage(validation.message, "error");
-      this.markInvalid(validation.fields);
-      return;
-    }
+  if (emailAlreadyUsed) {
+    return { message: "This email already exists.", fields: [emailInput] };
+  }
 
-    if (this.state.editingId) {
-      EmployeeStore.update(this.state.editingId, employee);
-      this.resetForm(false);
-      this.showMessage("Employee updated successfully.", "success");
-    } else {
-      EmployeeStore.add(employee);
-      this.resetForm(false);
-      this.showMessage("Employee added successfully.", "success");
-    }
+  if (!employee.department) {
+    return { message: "Department is required.", fields: [departmentInput] };
+  }
 
-    this.render();
-  },
+  const duplicateRecord = employees.some((item) => {
+    return (
+      item.id !== editingId &&
+      clean(item.name) === clean(employee.name) &&
+      clean(item.department) === clean(employee.department) &&
+      clean(item.position) === clean(employee.position)
+    );
+  });
 
-  readForm() {
-    const salary = Number(this.elements.salary.value);
-
+  if (duplicateRecord) {
     return {
-      name: this.elements.name.value.trim(),
-      email: this.elements.email.value.trim().toLowerCase(),
-      department: this.elements.department.value,
-      position: this.elements.position.value.trim(),
-      salary: Number.isFinite(salary) && salary > 0 ? salary : 0,
-      status: this.elements.status.value
+      message: "A matching employee record already exists.",
+      fields: [nameInput, departmentInput, positionInput]
     };
-  },
-
-  validateEmployee(employee) {
-    if (!employee.name) {
-      return { isValid: false, message: "Name is required.", fields: ["name"] };
-    }
-
-    if (!employee.email || !Utils.isValidEmail(employee.email)) {
-      return { isValid: false, message: "Enter a valid email address.", fields: ["email"] };
-    }
-
-    if (EmployeeStore.emailExists(employee.email, this.state.editingId)) {
-      return { isValid: false, message: "This email already exists.", fields: ["email"] };
-    }
-
-    if (!employee.department) {
-      return { isValid: false, message: "Department is required.", fields: ["department"] };
-    }
-
-    if (EmployeeStore.duplicateExists(employee, this.state.editingId)) {
-      return {
-        isValid: false,
-        message: "A matching employee record already exists.",
-        fields: ["name", "department", "position"]
-      };
-    }
-
-    return { isValid: true, message: "", fields: [] };
-  },
-
-  startEdit(id) {
-    const employee = EmployeeStore.findById(id);
-    if (!employee) {
-      return;
-    }
-
-    this.state.editingId = id;
-    this.elements.employeeId.value = employee.id;
-    this.elements.name.value = employee.name;
-    this.elements.email.value = employee.email;
-    this.elements.department.value = employee.department;
-    this.elements.position.value = employee.position || "";
-    this.elements.salary.value = employee.salary || "";
-    this.elements.status.value = employee.status || "Active";
-    this.elements.formTitle.textContent = "Edit Employee";
-    this.elements.submitButton.textContent = "Update Employee";
-    this.clearValidation();
-    this.showMessage("", "success");
-    document.getElementById("employee-form-panel").scrollIntoView({ behavior: "smooth" });
-    this.elements.name.focus();
-  },
-
-  deleteEmployee(id) {
-    const employee = EmployeeStore.findById(id);
-    if (!employee) {
-      return;
-    }
-
-    const shouldDelete = confirm(`Delete ${employee.name}'s record?`);
-    if (!shouldDelete) {
-      return;
-    }
-
-    EmployeeStore.remove(id);
-
-    if (this.state.editingId === id) {
-      this.resetForm(false);
-    }
-
-    this.showMessage("Employee deleted successfully.", "success");
-    this.render();
-  },
-
-  resetForm(clearMessage = true) {
-    this.elements.form.reset();
-    this.elements.employeeId.value = "";
-    this.state.editingId = "";
-    this.elements.formTitle.textContent = "Add Employee";
-    this.elements.submitButton.textContent = "Save Employee";
-    this.clearValidation();
-
-    if (clearMessage) {
-      this.showMessage("", "success");
-    }
-  },
-
-  clearValidation() {
-    [this.elements.name, this.elements.email, this.elements.department, this.elements.position].forEach((field) => {
-      field.classList.remove("is-invalid");
-      field.removeAttribute("aria-invalid");
-    });
-  },
-
-  markInvalid(fields) {
-    const fieldMap = {
-      name: this.elements.name,
-      email: this.elements.email,
-      department: this.elements.department,
-      position: this.elements.position
-    };
-
-    fields.forEach((fieldName) => {
-      const field = fieldMap[fieldName];
-      if (field) {
-        field.classList.add("is-invalid");
-        field.setAttribute("aria-invalid", "true");
-      }
-    });
-
-    const firstInvalidField = fieldMap[fields[0]];
-    if (firstInvalidField) {
-      firstInvalidField.focus();
-    }
-  },
-
-  showMessage(message, type) {
-    this.elements.formMessage.textContent = message;
-    this.elements.formMessage.classList.toggle("success", type === "success");
-  },
-
-  getFilteredEmployees() {
-    const searchTerm = Utils.normalize(this.state.searchTerm);
-    const employees = EmployeeStore.getAll();
-
-    if (!searchTerm) {
-      return employees;
-    }
-
-    return employees.filter((employee) => {
-      return (
-        Utils.normalize(employee.name).includes(searchTerm) ||
-        Utils.normalize(employee.department).includes(searchTerm)
-      );
-    });
-  },
-
-  render() {
-    this.renderStats();
-    this.renderTable();
-  },
-
-  renderStats() {
-    const employees = EmployeeStore.getAll();
-    const activeEmployees = employees.filter((employee) => employee.status === "Active").length;
-    const departments = new Set(employees.map((employee) => employee.department).filter(Boolean));
-    const payroll = employees.reduce((total, employee) => total + (Number(employee.salary) || 0), 0);
-
-    this.elements.totalEmployees.textContent = employees.length;
-    this.elements.activeEmployees.textContent = activeEmployees;
-    this.elements.departmentCount.textContent = departments.size;
-    this.elements.totalPayroll.textContent = Utils.formatCurrency(payroll);
-  },
-
-  renderTable() {
-    const employees = this.getFilteredEmployees();
-    this.elements.tableBody.innerHTML = employees.map((employee) => this.createEmployeeRow(employee)).join("");
-
-    const hasRows = employees.length > 0;
-    this.elements.emptyState.classList.toggle("show", !hasRows);
-    this.elements.emptyState.textContent = this.state.searchTerm
-      ? "No employees match your search."
-      : "No employees found. Add a record to get started.";
-  },
-
-  createEmployeeRow(employee) {
-    const safeId = Utils.escapeHtml(employee.id);
-    const status = employee.status || "Active";
-    const statusClass = status.toLowerCase().replace(/\s+/g, "-");
-
-    return `
-      <tr>
-        <td>
-          <div class="employee-name">
-            <strong>${Utils.escapeHtml(employee.name)}</strong>
-            <span>ID: ${safeId.slice(0, 8)}</span>
-          </div>
-        </td>
-        <td>${Utils.escapeHtml(employee.email)}</td>
-        <td>${Utils.escapeHtml(employee.department)}</td>
-        <td>${Utils.escapeHtml(employee.position || "Not assigned")}</td>
-        <td>${Utils.formatCurrency(employee.salary)}</td>
-        <td><span class="status-badge status-${statusClass}">${Utils.escapeHtml(status)}</span></td>
-        <td>
-          <div class="row-actions">
-            <button class="action-button" type="button" data-action="edit" data-id="${safeId}">Edit</button>
-            <button class="action-button delete" type="button" data-action="delete" data-id="${safeId}">Delete</button>
-          </div>
-        </td>
-      </tr>
-    `;
   }
-};
 
-document.addEventListener("DOMContentLoaded", () => App.init());
+  return null;
+}
+
+function handleTableClick(event) {
+  const button = event.target.closest("[data-action]");
+
+  if (!button) {
+    return;
+  }
+
+  const id = button.dataset.id;
+
+  if (button.dataset.action === "edit") {
+    editEmployee(id);
+  }
+
+  if (button.dataset.action === "delete") {
+    deleteEmployee(id);
+  }
+}
+
+function editEmployee(id) {
+  const employee = employees.find((item) => item.id === id);
+
+  if (!employee) {
+    return;
+  }
+
+  editingId = id;
+  employeeIdInput.value = employee.id;
+  nameInput.value = employee.name;
+  emailInput.value = employee.email;
+  departmentInput.value = employee.department;
+  positionInput.value = employee.position || "";
+  salaryInput.value = employee.salary || "";
+  statusInput.value = employee.status || "Active";
+  formTitle.textContent = "Edit Employee";
+  submitButton.textContent = "Update Employee";
+  showMessage("", "success");
+  clearErrors();
+  scrollToForm();
+}
+
+function deleteEmployee(id) {
+  const employee = employees.find((item) => item.id === id);
+
+  if (!employee || !confirm(`Delete ${employee.name}'s record?`)) {
+    return;
+  }
+
+  employees = employees.filter((item) => item.id !== id);
+  storeEmployees();
+
+  if (editingId === id) {
+    resetForm(false);
+  }
+
+  showMessage("Employee deleted successfully.", "success");
+  render();
+}
+
+function resetForm(clearMessage = true) {
+  form.reset();
+  editingId = "";
+  employeeIdInput.value = "";
+  formTitle.textContent = "Add Employee";
+  submitButton.textContent = "Save Employee";
+  clearErrors();
+
+  if (clearMessage) {
+    showMessage("", "success");
+  }
+}
+
+function showAddForm() {
+  resetForm();
+  scrollToForm();
+}
+
+function scrollToForm() {
+  document.getElementById("employee-form-panel").scrollIntoView({ behavior: "smooth" });
+  nameInput.focus();
+}
+
+function handleSearch(event) {
+  searchText = event.target.value;
+  renderEmployees();
+}
+
+function clearSearch() {
+  searchText = "";
+  searchInput.value = "";
+  renderEmployees();
+}
+
+function render() {
+  renderStats();
+  renderEmployees();
+}
+
+function renderStats() {
+  const activeCount = employees.filter((item) => item.status === "Active").length;
+  const departments = new Set(employees.map((item) => item.department).filter(Boolean));
+  const payroll = employees.reduce((total, item) => total + Number(item.salary || 0), 0);
+
+  totalEmployees.textContent = employees.length;
+  activeEmployees.textContent = activeCount;
+  departmentCount.textContent = departments.size;
+  totalPayroll.textContent = formatMoney(payroll);
+}
+
+function renderEmployees() {
+  const filteredEmployees = employees
+    .filter((employee) => {
+      return (
+        clean(employee.name).includes(clean(searchText)) ||
+        clean(employee.department).includes(clean(searchText))
+      );
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  tableBody.innerHTML = filteredEmployees.map(createEmployeeRow).join("");
+
+  emptyState.classList.toggle("show", filteredEmployees.length === 0);
+  emptyState.textContent = searchText
+    ? "No employees match your search."
+    : "No employees found. Add a record to get started.";
+}
+
+function createEmployeeRow(employee) {
+  const status = employee.status || "Active";
+  const statusClass = clean(status).replace(/\s+/g, "-");
+
+  return `
+    <tr>
+      <td>
+        <div class="employee-name">
+          <strong>${escapeHtml(employee.name)}</strong>
+          <span>ID: ${escapeHtml(employee.id).slice(0, 8)}</span>
+        </div>
+      </td>
+      <td>${escapeHtml(employee.email)}</td>
+      <td>${escapeHtml(employee.department)}</td>
+      <td>${escapeHtml(employee.position || "Not assigned")}</td>
+      <td>${formatMoney(employee.salary)}</td>
+      <td><span class="status-badge status-${statusClass}">${escapeHtml(status)}</span></td>
+      <td>
+        <div class="row-actions">
+          <button class="action-button" type="button" data-action="edit" data-id="${employee.id}">Edit</button>
+          <button class="action-button delete" type="button" data-action="delete" data-id="${employee.id}">Delete</button>
+        </div>
+      </td>
+    </tr>
+  `;
+}
+
+function markErrors(fields) {
+  fields.forEach((field) => {
+    field.classList.add("is-invalid");
+    field.setAttribute("aria-invalid", "true");
+  });
+  fields[0].focus();
+}
+
+function clearErrors() {
+  [nameInput, emailInput, departmentInput, positionInput].forEach((field) => {
+    field.classList.remove("is-invalid");
+    field.removeAttribute("aria-invalid");
+  });
+}
+
+function showMessage(message, type) {
+  formMessage.textContent = message;
+  formMessage.classList.toggle("success", type === "success");
+}
+
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function clean(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function formatMoney(value) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0
+  }).format(Number(value) || 0);
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
