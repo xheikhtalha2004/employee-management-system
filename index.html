@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Employee Management Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-mark">EMS</span>
+        <div>
+          <strong>Employee Manager</strong>
+          <small>Admin Dashboard</small>
+        </div>
+      </div>
+
+      <nav class="side-nav" aria-label="Main navigation">
+        <a href="#dashboard" class="active">Dashboard</a>
+        <a href="#employees">Employees</a>
+        <a href="#employee-form-panel">Add Record</a>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar" id="dashboard">
+        <div>
+          <p class="eyebrow">CapregSoft Frontend Task</p>
+          <h1>Employee Management Dashboard</h1>
+          <p class="page-description">Manage employee records with local storage, validation, search, and dashboard stats.</p>
+        </div>
+        <button class="primary-button" id="add-employee-btn" type="button">Add Employee</button>
+      </header>
+
+      <section class="stats-grid" aria-label="Dashboard statistics">
+        <article class="stat-card">
+          <span>Total Employees</span>
+          <strong id="total-employees">0</strong>
+        </article>
+        <article class="stat-card">
+          <span>Active Employees</span>
+          <strong id="active-employees">0</strong>
+        </article>
+        <article class="stat-card">
+          <span>Departments</span>
+          <strong id="department-count">0</strong>
+        </article>
+        <article class="stat-card">
+          <span>Total Payroll</span>
+          <strong id="total-payroll">$0</strong>
+        </article>
+      </section>
+
+      <section class="panel form-panel" id="employee-form-panel">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Employee Form</p>
+            <h2 id="form-title">Add Employee</h2>
+          </div>
+          <button class="ghost-button" id="reset-form-btn" type="button">Clear</button>
+        </div>
+
+        <form id="employee-form" novalidate>
+          <input type="hidden" id="employee-id">
+
+          <div class="form-grid">
+            <label>
+              Full Name
+              <input type="text" id="employee-name" placeholder="e.g. Sarah Ahmed" autocomplete="name">
+            </label>
+
+            <label>
+              Email Address
+              <input type="email" id="employee-email" placeholder="e.g. sarah@company.com" autocomplete="email">
+            </label>
+
+            <label>
+              Department
+              <select id="employee-department">
+                <option value="">Select department</option>
+                <option value="Engineering">Engineering</option>
+                <option value="Human Resources">Human Resources</option>
+                <option value="Finance">Finance</option>
+                <option value="Marketing">Marketing</option>
+                <option value="Sales">Sales</option>
+                <option value="Support">Support</option>
+              </select>
+            </label>
+
+            <label>
+              Position
+              <input type="text" id="employee-position" placeholder="e.g. Frontend Developer">
+            </label>
+
+            <label>
+              Monthly Salary
+              <input type="number" id="employee-salary" placeholder="e.g. 85000" min="0" step="1000">
+            </label>
+
+            <label>
+              Status
+              <select id="employee-status">
+                <option value="Active">Active</option>
+                <option value="On Leave">On Leave</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </label>
+          </div>
+
+          <p class="form-message" id="form-message" aria-live="polite"></p>
+
+          <div class="form-actions">
+            <button class="primary-button" id="submit-btn" type="submit">Save Employee</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel employee-panel" id="employees">
+        <div class="panel-header employee-header">
+          <div>
+            <p class="eyebrow">Records</p>
+            <h2>Employees</h2>
+          </div>
+
+          <div class="search-box">
+            <input type="search" id="search-input" placeholder="Search by name or department">
+            <button class="ghost-button" id="clear-search-btn" type="button">Clear</button>
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Department</th>
+                <th>Position</th>
+                <th>Salary</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="employee-table-body"></tbody>
+          </table>
+        </div>
+
+        <p class="empty-state" id="empty-state">No employees found. Add a record to get started.</p>
+      </section>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
